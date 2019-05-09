@@ -35,6 +35,7 @@ library(car)
 library(mosaic)
 library(emmeans)
 library(multcomp)
+library(plyr)
 
 ## enter the viagra data
 ## ------------------------------------------------------------------------
@@ -73,8 +74,7 @@ plot <- ggplot(viagraData, aes(dose, libido))
 plot + geom_boxplot(fill="slateblue") + 
   xlab("viagra dose") + ylab("libido") +
   stat_summary(fun.y=mean, geom="point", shape=20, size=5, color="red", fill="red") +
-  geom_jitter()
-  theme(legend.position="none")
+  geom_jitter() 
 
 ### barcharts with 95% CI (requires ggplot2 and Hmisc library)
 
@@ -84,10 +84,10 @@ plot + stat_summary(fun.data = mean_cl_normal, geom = "errorbar", width=0.2) +
 
 ### lineplot with 95% CL
 
-plot + stat_summary(fun.y = mean, geom = "line", size = 1, aes(group=1), colour = "#FF6633") + 
-  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2, size = 0.75, colour = "#990000") + 
-  stat_summary(fun.y = mean, geom = "point", size = 4, colour = "#990000") + 
+plot +
   stat_summary(fun.y = mean, geom = "point", size = 3, colour = "#FF6633") + 
+  stat_summary(fun.data = mean_cl_boot, geom = "errorbar", width = 0.2, size = 0.75, colour = "#990000") + 
+  stat_summary(fun.y = mean, geom = "line", size = 1, aes(group=1), colour = "#FF6633") + 
   labs(x = "Dose of Viagra", y = "Mean Libido", title="mean libido + 95%CI ")
 
 ## linear model
@@ -96,7 +96,7 @@ plot + stat_summary(fun.y = mean, geom = "line", size = 1, aes(group=1), colour 
 model2 = lm(libido ~ dose,data=viagraData)
 summary(model2)
 
-#### Note that R by deafult uses dummy coding also called treatment coding
+#### Note that R by default uses dummy coding also called treatment coding
 
 contr.treatment(levels(viagraData$dose))
 
@@ -131,6 +131,7 @@ plot(lsm)
 #### p-value adjustment with Dunnett's method
 
 C1 <- contrast(lsm, method="trt.vs.ctrl", ref=1, CIs=TRUE)
+C1
 
 plot(C1)
 confint(C1)
@@ -139,6 +140,7 @@ confint(C1)
 #### Tukey pvalue adjustment
 
 C2 <- contrast(lsm, method="pairwise", adjust="tukey", CIs=TRUE)
+C2
 
 plot(C2)
 confint(C2) 
@@ -152,3 +154,20 @@ confint(C2)
 L2 = rbind(c(0,1,0),c(0,0,1),c(0,-1, 1))
 rownames(L2) = c("low-placebo","high-placebo", "high-low")
 summary(glht(viagraModel.lm, linfct = L2))
+
+### with the emmeans package, contrasts are set-up in function of the lsmeans
+### get the order of the lsmeans:
+lsm
+
+# low-placebo: -1 1 0
+# high - placebo: -1 0 1
+
+C3 <- contrast(lsm, 
+         list(c1=c(-1, 1, 0), c2=c(-1, 0, 1)), adjust="dunnett",
+         by = NULL)
+
+C3
+confint(C3)
+
+### Many vignettes available for the emmeans package on 
+### https://cran.r-project.org/web/packages/emmeans/index.html
